@@ -1,7 +1,5 @@
-﻿using Backend.DataAccess.Models;
-using Backend.Services;
+﻿using Backend.Services;
 using Nancy;
-using Nancy.ModelBinding;
 
 namespace Backend.Modules
 {
@@ -15,18 +13,18 @@ namespace Backend.Modules
             Before += OnBeforeRequest;
 
             _cartService = cartService;
+
             Get["/"] = _ => GetCarts();
+            Post["/"] = _ => PostCart();
 
             Get["/{cartId:int}"] = p => GetCart(p.cartId);
 
-            // Expects query parameter "merchantId"
-            Post["/"] = _ => PostCart();
-
-            Post["/{cartId:int}/Item"] = p => PostCartItem(p.cartId);
+            Post["/{cartId:int}/Item/{productId:int}"] = p => PostCartItem(p.cartId, p.productId);
             Delete["/Item/{itemId:int}"] = p => DeleteCartItem(p.itemId);
 
             Post["/Item/{itemId:int}/User/{phonenumber:long}"] = p => PostUser(p.itemId, p.phonenumber);
             Delete["/Item/{itemId:int}/User/{phonenumber:long}"] = p => DeleteUser(p.itemId, p.phonenumber);
+            Put["/Item/{itemId:int}/User/{phonenumber:long}/{amount:int}"] = p => PutUser(p.itemId, p.phonenumber, p.amount);
 
             Post["/{cartId:int}/PayPaymit"] = p => PostPayPaymit(p.cartId);
         }
@@ -48,26 +46,17 @@ namespace Backend.Modules
                 return HttpStatusCode.Unauthorized;
             }
 
-            using (var service = new CartService())
-            {
-                return service.DeleteItem(itemId) ? HttpStatusCode.OK : HttpStatusCode.BadRequest;
-            }
+            return _cartService.DeleteItem(itemId) ? HttpStatusCode.OK : HttpStatusCode.BadRequest;
         }
 
         private object DeleteUser(int itemId, long phonenumber)
         {
-            using (var service = new CartService())
-            {
-                return service.RemoveUserFromItem(itemId, phonenumber) ? HttpStatusCode.OK : HttpStatusCode.InternalServerError;
-            }
+            return _cartService.RemoveUserFromItem(itemId, phonenumber) ? HttpStatusCode.OK : HttpStatusCode.InternalServerError;
         }
 
         private object GetCart(int cartId)
         {
-            using (var service = new CartService())
-            {
-                return Response.AsJson(service.GetCart(cartId));
-            }
+            return Response.AsJson(_cartService.GetCart(cartId));
         }
 
         private object GetCarts()
@@ -99,13 +88,10 @@ namespace Backend.Modules
                 return HttpStatusCode.Unauthorized;
             }
 
-            using (var service = new CartService())
-            {
-                return Response.AsJson(new { CartId = service.CreateCart(MerchantId) });
-            }
+            return Response.AsJson(new { CartId = _cartService.CreateCart(MerchantId) });
         }
 
-        private object PostCartItem(int cartId)
+        private object PostCartItem(int cartId, int productId)
         {
             if (MerchantId <= 0)
             {
@@ -116,15 +102,7 @@ namespace Backend.Modules
                 return HttpStatusCode.BadRequest;
             }
 
-            var item = this.Bind<CartItem>();
-
-            item.CartId = cartId;
-            item.Status = PaymentStatus.Open;
-
-            using (var service = new CartService())
-            {
-                return Response.AsJson(new { ItemId = service.CreateItem(item) });
-            }
+            return Response.AsJson(new { ItemId = _cartService.CreateItem(cartId, productId) });
         }
 
         private object PostPayPaymit(int cartId)
@@ -135,18 +113,17 @@ namespace Backend.Modules
                 return HttpStatusCode.Unauthorized;
             }
 
-            using (var service = new CartService())
-            {
-                return service.PayCart(cartId, UserId);
-            }
+            return _cartService.PayCart(cartId, UserId);
         }
 
         private object PostUser(int itemId, long phonenumber)
         {
-            using (var service = new CartService())
-            {
-                return service.AddUserToItem(itemId, phonenumber) ? HttpStatusCode.OK : HttpStatusCode.InternalServerError;
-            }
+            return _cartService.AddUserToItem(itemId, phonenumber) ? HttpStatusCode.OK : HttpStatusCode.InternalServerError;
+        }
+
+        private object PutUser(int itemId, long phonenumber, int amount)
+        {
+            return _cartService.SetItemAmount(itemId, phonenumber, amount);
         }
     }
 }

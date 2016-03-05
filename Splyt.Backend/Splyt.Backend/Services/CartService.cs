@@ -46,9 +46,26 @@ namespace Backend.Services
             return request.Id;
         }
 
-        public int CreateItem(CartItem item)
+        public int CreateItem(int cartId, int productId)
         {
-            DataContext.RequestItems.Add(item);
+            var item = DataContext.RequestItems.FirstOrDefault(i => i.CartId == cartId && i.ProductId == productId);
+
+            if (item != null)
+            {
+                item.Amount++;
+            }
+            else
+            {
+                item = new CartItem
+                {
+                    Amount = 1,
+                    CartId = cartId,
+                    ProductId = productId,
+                    Status = PaymentStatus.Open
+                };
+                DataContext.RequestItems.Add(item);
+            }
+
             DataContext.SaveChanges();
             return item.Id;
         }
@@ -127,6 +144,33 @@ namespace Backend.Services
                 }
 
                 DataContext.RequestItemUsers.Remove(existing);
+                var count = DataContext.SaveChanges();
+                ts.Complete();
+                return count > 0;
+            }
+        }
+
+        public bool SetItemAmount(int itemId, long phonenumber, int amount)
+        {
+            using (var ts = new TransactionScope())
+            {
+                var user = GetOrCreateUser(phonenumber);
+                var map = DataContext.RequestItemUsers.FirstOrDefault(x => x.CartItemId == itemId && x.UserId == user.Id);
+
+                if (map == null)
+                {
+                    return false;
+                }
+
+                if (amount == 0)
+                {
+                    DataContext.RequestItemUsers.Remove(map);
+                }
+                else if (map.CartItem.Amount >= amount)
+                {
+                    map.Amount = amount;
+                }
+
                 var count = DataContext.SaveChanges();
                 ts.Complete();
                 return count > 0;
