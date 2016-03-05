@@ -9,8 +9,6 @@ namespace Backend.Modules
         public TestModule()
             : base("/Test")
         {
-            ValidateIds = false;
-
             Get["/CreateTestData"] = _ => CreateTestData();
         }
 
@@ -51,6 +49,20 @@ namespace Backend.Modules
                     Price = 0.5f
                 };
                 context.Products.Add(product2);
+                var product3 = new Product
+                {
+                    Description = "Water Bottle",
+                    Merchant = merchant,
+                    Price = 0.5f
+                };
+                context.Products.Add(product3);
+                var product4 = new Product
+                {
+                    Description = "Big Beef Burger",
+                    Merchant = merchant,
+                    Price = 21.95f
+                };
+                context.Products.Add(product4);
 
                 var cart = new Cart
                 {
@@ -72,6 +84,20 @@ namespace Backend.Modules
                     Product = product2
                 };
                 context.RequestItems.Add(item2);
+                var item3 = new CartItem
+                {
+                    Amount = 1,
+                    Cart = cart,
+                    Product = product3
+                };
+                context.RequestItems.Add(item3);
+                var item4 = new CartItem
+                {
+                    Amount = 2,
+                    Cart = cart,
+                    Product = product4
+                };
+                context.RequestItems.Add(item4);
 
                 var riu1 = new CartItem_User
                 {
@@ -88,6 +114,14 @@ namespace Backend.Modules
                     Amount = 3
                 };
                 context.RequestItemUsers.Add(riu2);
+
+                var riu3 = new CartItem_User
+                {
+                    CartItem = item4,
+                    User = user2,
+                    Amount = 2
+                };
+                context.RequestItemUsers.Add(riu3);
                 context.SaveChanges();
             }
             return HttpStatusCode.OK;

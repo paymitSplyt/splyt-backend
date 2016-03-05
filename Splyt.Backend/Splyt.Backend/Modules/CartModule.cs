@@ -1,5 +1,7 @@
-﻿using Backend.Services;
+﻿using Backend.Models;
+using Backend.Services;
 using Nancy;
+using Nancy.ModelBinding;
 
 namespace Backend.Modules
 {
@@ -19,6 +21,7 @@ namespace Backend.Modules
 
             Get["/{cartId:int}"] = p => GetCart(p.cartId);
 
+            Post["/{cartId:int}/Item"] = p => PostCartItem(p.cartId);
             Post["/{cartId:int}/Item/{productId:int}"] = p => PostCartItem(p.cartId, p.productId);
             Delete["/Item/{itemId:int}"] = p => DeleteCartItem(p.itemId);
 
@@ -89,6 +92,23 @@ namespace Backend.Modules
             }
 
             return Response.AsJson(new { CartId = _cartService.CreateCart(MerchantId) });
+        }
+
+        private object PostCartItem(int cartId)
+        {
+            if (MerchantId <= 0)
+            {
+                return HttpStatusCode.Unauthorized;
+            }
+            if (cartId <= 0)
+            {
+                return HttpStatusCode.BadRequest;
+            }
+
+            var model = this.Bind<CartItemModel>();
+            model.CartId = cartId;
+
+            return Response.AsJson(new { ItemId = _cartService.CreateItem(model) });
         }
 
         private object PostCartItem(int cartId, int productId)

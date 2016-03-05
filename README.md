@@ -5,6 +5,8 @@
  * POST: create a new Cart for the currently logged in merchant (requires URL parameter “merchantId” and returns { cartId: <cart-id> }
 * /Cart/{cartId:int}
  * GET
+* /{cartId:int}/Item
+ * POST: Adds item(s) to a cart. Format: { description: <string>, price: <float>, amount: <int> } Returns { itemId: <int> }
 * /{cartId:int}/Item/{productId:int}
  * POST: Adds a new item/position to the cart. Returns { itemId: <item-id> }
 * /Item/{itemId:int}

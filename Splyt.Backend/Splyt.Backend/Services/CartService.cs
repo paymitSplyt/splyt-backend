@@ -70,6 +70,30 @@ namespace Backend.Services
             return item.Id;
         }
 
+        public int CreateItem(int cartId, string description, float price, int amount)
+        {
+            using (var ts = new TransactionScope())
+            {
+                var cart = DataContext.Requests.Find(cartId);
+                var product =
+                    DataContext.Products.FirstOrDefault(p => p.MerchantId == cart.MerchantId && p.Description == description && p.Price == price);
+                if (product == null)
+                {
+                    product = new Product
+                    {
+                        Description = description,
+                        MerchantId = cart.MerchantId,
+                        Price = price
+                    };
+                    DataContext.Products.Add(product);
+                    DataContext.SaveChanges();
+                }
+                var id = CreateItem(cartId, product.Id);
+                ts.Complete();
+                return id;
+            }
+        }
+
         public bool DeleteItem(int itemId)
         {
             var item = DataContext.RequestItems.Find(itemId);
