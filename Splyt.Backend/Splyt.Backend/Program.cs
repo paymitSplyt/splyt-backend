@@ -9,6 +9,9 @@ namespace Backend
         private static void Main(string[] args)
         {
             var url = Settings.Default.Url;
+#if DEBUG
+            url = "http://+:8081";
+#endif
             using (WebApp.Start<Startup>(url))
             {
                 Console.WriteLine($"Running on {url}");

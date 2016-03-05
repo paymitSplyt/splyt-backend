@@ -10,28 +10,35 @@ namespace Backend.Services
 {
     public class CartService : Service
     {
-        public bool AddUserToItem(int itemId, long phonenumber)
+        public void AddUserToItem(int itemId, long phonenumber)
         {
             using (var ts = new TransactionScope())
             {
+                var maps = DataContext.CartItemUsers.Where(x => x.CartItemId == itemId).Sum(cui => (int?)cui.Amount);
+                var item = DataContext.CartItems.Find(itemId);
+                if (item.Amount <= maps)
+                {
+                    return;
+                }
+
                 var user = GetOrCreateUser(phonenumber);
-                var map = DataContext.RequestItemUsers.FirstOrDefault(x => x.CartItemId == itemId && x.UserId == user.Id);
+                var map = DataContext.CartItemUsers.FirstOrDefault(x => x.CartItemId == itemId && x.UserId == user.Id);
 
                 if (map != null)
                 {
-                    return true;
+                    return;
                 }
 
                 map = new CartItem_User
                 {
+                    Amount = 1,
                     CartItemId = itemId,
                     Status = PaymentStatus.Open,
                     UserId = user.Id
                 };
-                DataContext.RequestItemUsers.Add(map);
-                var count = DataContext.SaveChanges();
+                DataContext.CartItemUsers.Add(map);
+                DataContext.SaveChanges();
                 ts.Complete();
-                return count > 0;
             }
         }
 
@@ -41,29 +48,29 @@ namespace Backend.Services
             {
                 MerchantId = merchantId
             };
-            DataContext.Requests.Add(request);
+            DataContext.Carts.Add(request);
             DataContext.SaveChanges();
             return request.Id;
         }
 
-        public int CreateItem(int cartId, int productId)
+        public int CreateItem(int cartId, int productId, int amount)
         {
-            var item = DataContext.RequestItems.FirstOrDefault(i => i.CartId == cartId && i.ProductId == productId);
+            var item = DataContext.CartItems.FirstOrDefault(i => i.CartId == cartId && i.ProductId == productId);
 
             if (item != null)
             {
-                item.Amount++;
+                item.Amount += amount;
             }
             else
             {
                 item = new CartItem
                 {
-                    Amount = 1,
+                    Amount = amount,
                     CartId = cartId,
                     ProductId = productId,
                     Status = PaymentStatus.Open
                 };
-                DataContext.RequestItems.Add(item);
+                DataContext.CartItems.Add(item);
             }
 
             DataContext.SaveChanges();
@@ -74,7 +81,7 @@ namespace Backend.Services
         {
             using (var ts = new TransactionScope())
             {
-                var cart = DataContext.Requests.Find(cartId);
+                var cart = DataContext.Carts.Find(cartId);
                 var product =
                     DataContext.Products.FirstOrDefault(p => p.MerchantId == cart.MerchantId && p.Description == description && p.Price == price);
                 if (product == null)
@@ -88,27 +95,26 @@ namespace Backend.Services
                     DataContext.Products.Add(product);
                     DataContext.SaveChanges();
                 }
-                var id = CreateItem(cartId, product.Id);
+                var id = CreateItem(cartId, product.Id, amount);
                 ts.Complete();
                 return id;
             }
         }
 
-        public bool DeleteItem(int itemId)
+        public void DeleteItem(int itemId)
         {
-            var item = DataContext.RequestItems.Find(itemId);
+            var item = DataContext.CartItems.Find(itemId);
             if (item != null)
             {
-                DataContext.RequestItemUsers.Where(x => x.CartItemId == itemId).Delete();
-                DataContext.RequestItems.Remove(item);
-                return DataContext.SaveChanges() > 0;
+                DataContext.CartItemUsers.Where(x => x.CartItemId == itemId).Delete();
+                DataContext.CartItems.Remove(item);
+                DataContext.SaveChanges();
             }
-            return false;
         }
 
-        public CartModel GetCart(int id)
+        public CartModel GetCart(int id, long? phonenumber = null)
         {
-            var query = GetCartsQueryable();
+            var query = GetCartsQueryable(phonenumber);
             var result = query.FirstOrDefault(request => request.Id == id);
             if (result != null)
             {
@@ -141,7 +147,7 @@ namespace Backend.Services
         {
             using (var ts = new TransactionScope())
             {
-                var maps = DataContext.RequestItemUsers.Where(map => map.UserId == userId && map.CartItem.CartId == cartId);
+                var maps = DataContext.CartItemUsers.Where(map => map.UserId == userId && map.CartItem.CartId == cartId);
                 // make payment...
                 foreach (var cartItemUser in maps)
                 {
@@ -151,59 +157,66 @@ namespace Backend.Services
             throw new NotImplementedException();
         }
 
-        public bool RemoveUserFromItem(int itemId, long phonenumber)
+        public void RemoveUserFromItem(int itemId, long phonenumber)
         {
             using (var ts = new TransactionScope())
             {
                 var user = GetOrCreateUser(phonenumber);
-                var existing = DataContext.RequestItemUsers.FirstOrDefault(x => x.CartItemId == itemId && x.UserId == user.Id);
+                var existing = DataContext.CartItemUsers.FirstOrDefault(x => x.CartItemId == itemId && x.UserId == user.Id);
                 if (existing == null)
                 {
-                    return true;
+                    return;
                 }
 
                 if (existing.Status != PaymentStatus.Open)
                 {
-                    return false;
+                    return;
                 }
 
-                DataContext.RequestItemUsers.Remove(existing);
-                var count = DataContext.SaveChanges();
+                DataContext.CartItemUsers.Remove(existing);
+                DataContext.SaveChanges();
                 ts.Complete();
-                return count > 0;
             }
         }
 
-        public bool SetItemAmount(int itemId, long phonenumber, int amount)
+        public void SetItemAmount(int itemId, long phonenumber, int amount)
         {
             using (var ts = new TransactionScope())
             {
                 var user = GetOrCreateUser(phonenumber);
-                var map = DataContext.RequestItemUsers.FirstOrDefault(x => x.CartItemId == itemId && x.UserId == user.Id);
+                var map = DataContext.CartItemUsers.FirstOrDefault(x => x.CartItemId == itemId && x.UserId == user.Id);
 
                 if (map == null)
                 {
-                    return false;
+                    return;
                 }
 
                 if (amount == 0)
                 {
-                    DataContext.RequestItemUsers.Remove(map);
+                    DataContext.CartItemUsers.Remove(map);
                 }
                 else if (map.CartItem.Amount >= amount)
                 {
                     map.Amount = amount;
                 }
 
-                var count = DataContext.SaveChanges();
+                DataContext.SaveChanges();
                 ts.Complete();
-                return count > 0;
             }
         }
 
-        private IQueryable<CartModel> GetCartsQueryable()
+        private IQueryable<CartModel> GetCartsQueryable(long? phonenumber = null)
         {
-            return from request in DataContext.Requests
+            int? userId = null;
+            if (phonenumber.HasValue)
+            {
+                var user = GetOrCreateUser(phonenumber.Value);
+                userId = user.Id;
+            }
+            return from request in DataContext.Carts
+                   where userId == null ||
+                         request.CartItems.Any(item => item.CartItem_Users.Count < item.Amount ||
+                                                       item.CartItem_Users.Any(ciu => ciu.UserId == userId))
                    select new CartModel
                    {
                        Id = request.Id,
@@ -211,9 +224,15 @@ namespace Backend.Services
                                select new CartItemModel
                                {
                                    Amount = item.Amount,
+                                   CartId = item.CartId,
                                    Description = item.Product.Description,
+                                   Id = item.Id,
                                    Price = item.Product.Price,
                                    ProductId = item.ProductId,
+                                   UserAmount = userId != null &&
+                                                item.CartItem_Users.Any(ciu => ciu.UserId == userId) ?
+                                                    item.CartItem_Users.Where(ciu => ciu.UserId == userId).Sum(ciu => (int?)ciu.Amount) :
+                                                    null,
                                    Users = from ciu in item.CartItem_Users
                                            select new CartItemUserModel
                                            {
@@ -225,7 +244,7 @@ namespace Backend.Services
                        MerchantId = request.MerchantId,
                        MerchantName = request.Merchant.Name,
                        Date = request.Created,
-                       TotalPrice = request.CartItems.Sum(x => x.Amount * x.Product.Price)
+                       TotalPrice = request.CartItems.Sum(x => (float?)(x.Amount * x.Product.Price)) ?? 0
                    };
         }
     }

@@ -12,7 +12,7 @@
 * /Item/{itemId:int}
  * DELETE: Deletes an item from a cart
 * /Item/{itemId:int}/User/{phonenumber:long}
-* POST: assigns an item to a user
-* DELETE: remove the user’s assignation to the item
+ * POST: assigns an item to a user
+ * DELETE: remove the user’s assignation to the item
 * /Item/{itemId:int}/User/{phonenumber:long}/Amount/{amount:int}
  * PUT: set the amount of the same product for a user

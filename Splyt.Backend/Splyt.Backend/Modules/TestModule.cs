@@ -68,7 +68,7 @@ namespace Backend.Modules
                 {
                     Merchant = merchant
                 };
-                context.Requests.Add(cart);
+                context.Carts.Add(cart);
 
                 var item1 = new CartItem
                 {
@@ -76,28 +76,28 @@ namespace Backend.Modules
                     Cart = cart,
                     Product = product1
                 };
-                context.RequestItems.Add(item1);
+                context.CartItems.Add(item1);
                 var item2 = new CartItem
                 {
                     Amount = 1,
                     Cart = cart,
                     Product = product2
                 };
-                context.RequestItems.Add(item2);
+                context.CartItems.Add(item2);
                 var item3 = new CartItem
                 {
                     Amount = 1,
                     Cart = cart,
                     Product = product3
                 };
-                context.RequestItems.Add(item3);
+                context.CartItems.Add(item3);
                 var item4 = new CartItem
                 {
                     Amount = 2,
                     Cart = cart,
                     Product = product4
                 };
-                context.RequestItems.Add(item4);
+                context.CartItems.Add(item4);
 
                 var riu1 = new CartItem_User
                 {
@@ -105,7 +105,7 @@ namespace Backend.Modules
                     User = user1,
                     Amount = 1
                 };
-                context.RequestItemUsers.Add(riu1);
+                context.CartItemUsers.Add(riu1);
 
                 var riu2 = new CartItem_User
                 {
@@ -113,7 +113,7 @@ namespace Backend.Modules
                     User = user2,
                     Amount = 3
                 };
-                context.RequestItemUsers.Add(riu2);
+                context.CartItemUsers.Add(riu2);
 
                 var riu3 = new CartItem_User
                 {
@@ -121,7 +121,7 @@ namespace Backend.Modules
                     User = user2,
                     Amount = 2
                 };
-                context.RequestItemUsers.Add(riu3);
+                context.CartItemUsers.Add(riu3);
                 context.SaveChanges();
             }
             return HttpStatusCode.OK;

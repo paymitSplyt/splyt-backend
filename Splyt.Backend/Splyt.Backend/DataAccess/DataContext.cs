@@ -11,16 +11,12 @@ namespace Backend.DataAccess
             Database.SetInitializer(new DbInitializer());
         }
 
+        public IDbSet<CartItem> CartItems { get; set; }
+        public IDbSet<CartItem_User> CartItemUsers { get; set; }
+        public IDbSet<Cart> Carts { get; set; }
         public IDbSet<Merchant> Merchants { get; set; }
 
         public IDbSet<Product> Products { get; set; }
-
-        public IDbSet<CartItem> RequestItems { get; set; }
-
-        public IDbSet<CartItem_User> RequestItemUsers { get; set; }
-
-        public IDbSet<Cart> Requests { get; set; }
-
         public IDbSet<User> Users { get; set; }
 
         protected override void OnModelCreating(DbModelBuilder modelBuilder)

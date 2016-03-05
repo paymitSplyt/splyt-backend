@@ -1,4 +1,5 @@
-﻿using Nancy;
+﻿using System;
+using Nancy;
 
 namespace Backend.Modules
 {
@@ -7,6 +8,13 @@ namespace Backend.Modules
         protected Module(string modulePath)
             : base(modulePath)
         {
+            OnError += OnErrorHandler;
+        }
+
+        private static object OnErrorHandler(NancyContext ctx, Exception ex)
+        {
+            Console.WriteLine(ex);
+            return null;
         }
     }
 }
