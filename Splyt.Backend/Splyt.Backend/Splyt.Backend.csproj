@@ -127,7 +127,6 @@
     <Compile Include="Models\CartModel.cs" />
     <Compile Include="Modules\CartModule.cs" />
     <Compile Include="Modules\Module.cs" />
-    <Compile Include="Modules\PaymentModule.cs" />
     <Compile Include="Modules\TestModule.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
