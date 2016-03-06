@@ -156,6 +156,18 @@ namespace Backend.Services
             return user;
         }
 
+        public IEnumerable<CartItemUserModel> GetUsers(int cartId)
+        {
+            var query = from ciu in DataContext.CartItemUsers
+                        where ciu.CartItem.CartId == cartId
+                        select new CartItemUserModel
+                        {
+                            Phonenumber = ciu.User.Phonenumber,
+                            Amount = ciu.Amount
+                        };
+            return query.ToArray();
+        }
+
         public object PayCart(int cartId, int userId)
         {
             using (var ts = new TransactionScope())
@@ -176,12 +188,8 @@ namespace Backend.Services
             {
                 var user = GetOrCreateUser(phonenumber);
                 var existing = DataContext.CartItemUsers.FirstOrDefault(x => x.CartItemId == itemId && x.UserId == user.Id);
-                if (existing == null)
-                {
-                    return;
-                }
 
-                if (existing.Status != PaymentStatus.Open)
+                if (existing?.Status != PaymentStatus.Open)
                 {
                     return;
                 }

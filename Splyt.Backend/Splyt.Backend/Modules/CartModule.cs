@@ -33,6 +33,8 @@ namespace Backend.Modules
 
             Get["/{cartId:int}/Balance/{phonenumber:long}"] = p => GetBalance(p.cartId, p.phonenumber);
 
+            Get["/{cartId:int}/Users"] = p => GetUsers(p.cartId);
+
             Post["/{cartId:int}/PayPaymit"] = p => PostPayPaymit(p.cartId);
         }
 
@@ -70,6 +72,11 @@ namespace Backend.Modules
         {
             int merchantId = Request.Query.merchantId;
             return _cartService.GetCarts(merchantId);
+        }
+
+        private object GetUsers(int cartId)
+        {
+            return _cartService.GetUsers(cartId);
         }
 
         private Response OnBeforeRequest(NancyContext arg)
