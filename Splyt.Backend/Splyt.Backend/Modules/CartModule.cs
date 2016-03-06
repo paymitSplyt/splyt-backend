@@ -29,7 +29,9 @@ namespace Backend.Modules
 
             Post["/Item/{itemId:int}/User/{phonenumber:long}"] = p => PostUser(p.itemId, p.phonenumber);
             Delete["/Item/{itemId:int}/User/{phonenumber:long}"] = p => DeleteUser(p.itemId, p.phonenumber);
-            Put["/Item/{itemId:int}/User/{phonenumber:long}/{amount:int}"] = p => PutUser(p.itemId, p.phonenumber, p.amount);
+            Put["/Item/{itemId:int}/User/{phonenumber:long}/Amount/{amount:int}"] = p => PutUser(p.itemId, p.phonenumber, p.amount);
+
+            Get["/{cartId:int}/Balance/{phonenumber:long}"] = p => GetBalance(p.cartId, p.phonenumber);
 
             Post["/{cartId:int}/PayPaymit"] = p => PostPayPaymit(p.cartId);
         }
@@ -46,6 +48,11 @@ namespace Backend.Modules
             _cartService.RemoveUserFromItem(itemId, phonenumber);
             NotifyClients();
             return HttpStatusCode.OK;
+        }
+
+        private object GetBalance(int cartId, long phonenumber)
+        {
+            return new { Balance = _cartService.GetBalance(cartId, phonenumber) };
         }
 
         private object GetCart(int cartId)

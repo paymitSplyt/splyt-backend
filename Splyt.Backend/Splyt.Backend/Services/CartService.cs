@@ -112,6 +112,19 @@ namespace Backend.Services
             }
         }
 
+        public float GetBalance(int cartId, long phonenumber)
+        {
+            var user = GetOrCreateUser(phonenumber);
+            var query = from item in DataContext.CartItems
+                        where item.CartId == cartId
+                        where item.CartItem_Users.Any(ciu => ciu.UserId == user.Id)
+                        select new
+                        {
+                            Price = item.Product.Price * item.CartItem_Users.Where(ciu => ciu.UserId == user.Id).Sum(ciu => ciu.Amount)
+                        };
+            return query.Sum(x => (float?)x.Price) ?? 0;
+        }
+
         public CartModel GetCart(int id, long? phonenumber = null)
         {
             var query = GetCartsQueryable(phonenumber);
@@ -184,9 +197,16 @@ namespace Backend.Services
             using (var ts = new TransactionScope())
             {
                 var user = GetOrCreateUser(phonenumber);
-                var map = DataContext.CartItemUsers.FirstOrDefault(x => x.CartItemId == itemId && x.UserId == user.Id);
 
+                var map = DataContext.CartItemUsers.FirstOrDefault(x => x.CartItemId == itemId && x.UserId == user.Id);
                 if (map == null)
+                {
+                    return;
+                }
+
+                var otherMapsAmount = DataContext.CartItemUsers.Where(x => x.CartItemId == itemId && x.UserId != user.Id).Sum(cui => (int?)cui.Amount);
+                var item = DataContext.CartItems.Find(itemId);
+                if (amount < 0 || otherMapsAmount + amount > item.Amount)
                 {
                     return;
                 }
@@ -230,10 +250,11 @@ namespace Backend.Services
                                    Id = item.Id,
                                    Price = item.Product.Price,
                                    ProductId = item.ProductId,
+                                   SelectedAmount = item.CartItem_Users.Sum(ciu => (int?)ciu.Amount) ?? 0,
                                    UserAmount = userId != null &&
                                                 item.CartItem_Users.Any(ciu => ciu.UserId == userId) ?
-                                                    item.CartItem_Users.Where(ciu => ciu.UserId == userId).Sum(ciu => (int?)ciu.Amount) :
-                                                    null,
+                                                    item.CartItem_Users.Where(ciu => ciu.UserId == userId).Sum(ciu => ciu.Amount) :
+                                                    0,
                                    Users = from ciu in item.CartItem_Users
                                            select new CartItemUserModel
                                            {

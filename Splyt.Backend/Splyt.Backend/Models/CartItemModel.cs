@@ -11,8 +11,9 @@ namespace Backend.Models
         public int Id { get; set; }
         public float Price { get; set; }
         public int ProductId { get; set; }
+        public int SelectedAmount { get; set; }
         public PaymentStatus Status { get; set; }
-        public int? UserAmount { get; set; }
+        public int UserAmount { get; set; }
         public IEnumerable<CartItemUserModel> Users { get; set; }
     }
 }
