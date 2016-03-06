@@ -1,4 +1,6 @@
 ﻿using System;
+using Backend.Hubs;
+using Microsoft.AspNet.SignalR;
 using Nancy;
 
 namespace Backend.Modules
@@ -9,6 +11,12 @@ namespace Backend.Modules
             : base(modulePath)
         {
             OnError += OnErrorHandler;
+        }
+
+        protected void NotifyClients()
+        {
+            var context = GlobalHost.ConnectionManager.GetHubContext<NotificationHub>();
+            context.Clients.All.notify();
         }
 
         private static object OnErrorHandler(NancyContext ctx, Exception ex)

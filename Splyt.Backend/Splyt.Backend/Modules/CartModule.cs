@@ -1,4 +1,5 @@
-﻿using Backend.Models;
+﻿using System;
+using Backend.Models;
 using Backend.Services;
 using Nancy;
 using Nancy.ModelBinding;
@@ -36,12 +37,14 @@ namespace Backend.Modules
         private object DeleteCartItem(int itemId)
         {
             _cartService.DeleteItem(itemId);
+            NotifyClients();
             return HttpStatusCode.OK;
         }
 
         private object DeleteUser(int itemId, long phonenumber)
         {
             _cartService.RemoveUserFromItem(itemId, phonenumber);
+            NotifyClients();
             return HttpStatusCode.OK;
         }
 
@@ -52,6 +55,7 @@ namespace Backend.Modules
 
         private object GetCart(int cartId, long phonenumber)
         {
+            Console.WriteLine(phonenumber);
             return Response.AsJson(_cartService.GetCart(cartId, phonenumber));
         }
 
@@ -77,18 +81,24 @@ namespace Backend.Modules
         private object PostCart()
         {
             int merchantId = Request.Query.merchantId;
-            return Response.AsJson(new { CartId = _cartService.CreateCart(merchantId) });
+            var response = Response.AsJson(new { CartId = _cartService.CreateCart(merchantId) });
+            NotifyClients();
+            return response;
         }
 
         private object PostCartItem(int cartId)
         {
             var model = this.Bind<CartItemModel>();
-            return Response.AsJson(new { ItemId = _cartService.CreateItem(cartId, model.Description, model.Price, model.Amount) });
+            var response = Response.AsJson(new { ItemId = _cartService.CreateItem(cartId, model.Description, model.Price, model.Amount) });
+            NotifyClients();
+            return response;
         }
 
         private object PostCartItem(int cartId, int productId)
         {
-            return Response.AsJson(new { ItemId = _cartService.CreateItem(cartId, productId, 1) });
+            var response = Response.AsJson(new { ItemId = _cartService.CreateItem(cartId, productId, 1) });
+            NotifyClients();
+            return response;
         }
 
         private object PostPayPaymit(int cartId)
@@ -101,12 +111,14 @@ namespace Backend.Modules
         private object PostUser(int itemId, long phonenumber)
         {
             _cartService.AddUserToItem(itemId, phonenumber);
+            NotifyClients();
             return HttpStatusCode.OK;
         }
 
         private object PutUser(int itemId, long phonenumber, int amount)
         {
             _cartService.SetItemAmount(itemId, phonenumber, amount);
+            NotifyClients();
             return HttpStatusCode.OK;
         }
     }

@@ -115,7 +115,7 @@ namespace Backend.Services
         public CartModel GetCart(int id, long? phonenumber = null)
         {
             var query = GetCartsQueryable(phonenumber);
-            var result = query.FirstOrDefault(request => request.Id == id);
+            var result = query.FirstOrDefault(cart => cart.Id == id);
             if (result != null)
             {
                 result.Status = result.Items.Any(item => item.Status == PaymentStatus.Open)
@@ -213,14 +213,15 @@ namespace Backend.Services
                 var user = GetOrCreateUser(phonenumber.Value);
                 userId = user.Id;
             }
-            return from request in DataContext.Carts
-                   where userId == null ||
-                         request.CartItems.Any(item => item.CartItem_Users.Count < item.Amount ||
-                                                       item.CartItem_Users.Any(ciu => ciu.UserId == userId))
+            Console.WriteLine("userid " + userId);
+            return from cart in DataContext.Carts
                    select new CartModel
                    {
-                       Id = request.Id,
-                       Items = from item in request.CartItems
+                       Id = cart.Id,
+                       Items = from item in cart.CartItems
+                               where userId == null ||
+                                     (item.CartItem_Users.Sum(ciu => (int?)ciu.Amount) ?? 0) < item.Amount ||
+                                     item.CartItem_Users.Any(ciu => ciu.UserId == userId)
                                select new CartItemModel
                                {
                                    Amount = item.Amount,
@@ -241,10 +242,10 @@ namespace Backend.Services
                                            },
                                    Status = item.CartItem_Users.Count > 1 ? item.CartItem_Users.Select(riu => riu.Status).Max() : item.Status,
                                },
-                       MerchantId = request.MerchantId,
-                       MerchantName = request.Merchant.Name,
-                       Date = request.Created,
-                       TotalPrice = request.CartItems.Sum(x => (float?)(x.Amount * x.Product.Price)) ?? 0
+                       MerchantId = cart.MerchantId,
+                       MerchantName = cart.Merchant.Name,
+                       Date = cart.Created,
+                       TotalPrice = cart.CartItems.Sum(x => (float?)(x.Amount * x.Product.Price)) ?? 0
                    };
         }
     }
