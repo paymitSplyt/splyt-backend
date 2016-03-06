@@ -156,16 +156,12 @@ namespace Backend.Services
             return user;
         }
 
-        public IEnumerable<CartItemUserModel> GetUsers(int cartId)
+        public IEnumerable<long> GetUsers(int cartId)
         {
             var query = from ciu in DataContext.CartItemUsers
                         where ciu.CartItem.CartId == cartId
-                        select new CartItemUserModel
-                        {
-                            Phonenumber = ciu.User.Phonenumber,
-                            Amount = ciu.Amount
-                        };
-            return query.ToArray();
+                        select ciu.User.Phonenumber;
+            return query.Distinct().ToArray();
         }
 
         public object PayCart(int cartId, int userId)
