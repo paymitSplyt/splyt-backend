@@ -16,6 +16,6 @@ namespace Backend.DataAccess.Models
         public virtual User User { get; set; }
 
         [ForeignKey("User")]
-        public int UserId { get; set; }
+        public int? UserId { get; set; }
     }
 }

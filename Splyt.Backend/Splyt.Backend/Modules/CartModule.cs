@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using Backend.Models;
 using Backend.Services;
 using Nancy;
@@ -35,7 +36,8 @@ namespace Backend.Modules
 
             Get["/{cartId:int}/Users"] = p => GetUsers(p.cartId);
 
-            Post["/{cartId:int}/PayPaymit"] = p => PostPayPaymit(p.cartId);
+            Post["/Item/{itemId:int}/Pay"] = p => PostPayCash(p.itemId);
+            Post["/{cartId:int}/Pay"] = p => PostPayPaymit(p.cartId);
         }
 
         private object DeleteCartItem(int itemId)
@@ -115,11 +117,26 @@ namespace Backend.Modules
             return response;
         }
 
+        private object PostPayCash(int itemId)
+        {
+            _cartService.PayCash(itemId);
+            NotifyClients();
+            return HttpStatusCode.OK;
+        }
+
         private object PostPayPaymit(int cartId)
         {
-            // create a payment from the currently logged in user to the merchant
+            // TODO create a payment from the currently logged in user to the merchant
             const int userId = 0;
-            return _cartService.PayCart(cartId, userId);
+            var phonenumbers = this.Bind<IEnumerable<long>>();
+            Console.Write("phonenumbers: " + phonenumbers);
+            if (phonenumbers != null)
+            {
+                Console.WriteLine(string.Join(", ", phonenumbers));
+            }
+            _cartService.PayCart(cartId, phonenumbers);
+            NotifyClients();
+            return HttpStatusCode.OK;
         }
 
         private object PostUser(int itemId, long phonenumber)

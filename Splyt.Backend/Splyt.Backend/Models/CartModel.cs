@@ -11,6 +11,7 @@ namespace Backend.Models
         public IEnumerable<CartItemModel> Items { get; set; }
         public int MerchantId { get; set; }
         public string MerchantName { get; set; }
+        public float PaidPrice { get; set; }
         public PaymentStatus Status { get; set; }
         public float TotalPrice { get; set; }
     }

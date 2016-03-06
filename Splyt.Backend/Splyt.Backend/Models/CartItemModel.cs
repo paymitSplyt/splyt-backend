@@ -9,6 +9,7 @@ namespace Backend.Models
         public int CartId { get; set; }
         public string Description { get; set; }
         public int Id { get; set; }
+        public int PaidAmount { get; set; }
         public float Price { get; set; }
         public int ProductId { get; set; }
         public int SelectedAmount { get; set; }

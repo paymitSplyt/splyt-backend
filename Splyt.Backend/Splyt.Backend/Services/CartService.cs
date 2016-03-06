@@ -120,7 +120,7 @@ namespace Backend.Services
                         where item.CartItem_Users.Any(ciu => ciu.UserId == user.Id)
                         select new
                         {
-                            Price = item.Product.Price * item.CartItem_Users.Where(ciu => ciu.UserId == user.Id).Sum(ciu => ciu.Amount)
+                            Price = item.Product.Price * item.CartItem_Users.Where(ciu => ciu.UserId == user.Id && ciu.Status == PaymentStatus.Open).Sum(ciu => ciu.Amount)
                         };
             return query.Sum(x => (float?)x.Price) ?? 0;
         }
@@ -160,22 +160,86 @@ namespace Backend.Services
         {
             var query = from ciu in DataContext.CartItemUsers
                         where ciu.CartItem.CartId == cartId
+                        where ciu.UserId != null
                         select ciu.User.Phonenumber;
             return query.Distinct().ToArray();
         }
 
-        public object PayCart(int cartId, int userId)
+        public void PayCart(int cartId, IEnumerable<long> phonenumbers)
         {
             using (var ts = new TransactionScope())
             {
-                var maps = DataContext.CartItemUsers.Where(map => map.UserId == userId && map.CartItem.CartId == cartId);
+                var userIds = new List<int>();
+                foreach (var phonenumber in phonenumbers)
+                {
+                    var user = GetOrCreateUser(phonenumber);
+                    userIds.Add(user.Id);
+                }
+
+                var maps = DataContext.CartItemUsers.Where(map => map.CartItem.CartId == cartId && map.UserId != null && userIds.Contains(map.UserId.Value));
                 // make payment...
                 foreach (var cartItemUser in maps)
                 {
                     cartItemUser.Status = PaymentStatus.Done;
                 }
+
+                DataContext.SaveChanges();
+                ts.Complete();
             }
-            throw new NotImplementedException();
+        }
+
+        public void PayCash(int itemId)
+        {
+            using (var ts = new TransactionScope())
+            {
+                var item = DataContext.CartItems.Find(itemId);
+                var mapsAmount = item.CartItem_Users.Sum(ciu => (float?)ciu.Amount);
+
+                Console.WriteLine($"item amount: {item.Amount}, map amount: {mapsAmount}");
+
+                if (mapsAmount >= item.Amount)
+                {
+                    if (item.CartItem_Users.Where(ciu => ciu.UserId != null).All(ciu => ciu.Status == PaymentStatus.Open))
+                    {
+                        DataContext.CartItemUsers.Where(ciu => ciu.UserId != null && ciu.CartItemId == item.Id).Delete();
+                        DataContext.SaveChanges();
+                    }
+                    else
+                    {
+                        // TODO fail..
+                        return;
+                    }
+                }
+
+                var map = item.CartItem_Users.FirstOrDefault(ciu => ciu.UserId == null);
+
+                if (map == null)
+                {
+                    map = new CartItem_User
+                    {
+                        Amount = 1,
+                        CartItemId = itemId,
+                        Status = PaymentStatus.Done
+                    };
+                    DataContext.CartItemUsers.Add(map);
+                }
+                else
+                {
+                    map.Amount++;
+                    if (map.Amount > item.Amount)
+                    {
+                        map.Amount = item.Amount;
+                    }
+                }
+
+                if (map.Amount == item.Amount)
+                {
+                    item.Status = PaymentStatus.Done;
+                }
+
+                DataContext.SaveChanges();
+                ts.Complete();
+            }
         }
 
         public void RemoveUserFromItem(int itemId, long phonenumber)
@@ -245,13 +309,15 @@ namespace Backend.Services
                        Items = from item in cart.CartItems
                                where userId == null ||
                                      (item.CartItem_Users.Sum(ciu => (int?)ciu.Amount) ?? 0) < item.Amount ||
-                                     item.CartItem_Users.Any(ciu => ciu.UserId == userId)
+                                     (item.CartItem_Users.Any(ciu => ciu.UserId == userId) &&
+                                      item.CartItem_Users.Any(ciu => ciu.Status != PaymentStatus.Done))
                                select new CartItemModel
                                {
                                    Amount = item.Amount,
                                    CartId = item.CartId,
                                    Description = item.Product.Description,
                                    Id = item.Id,
+                                   PaidAmount = item.CartItem_Users.Where(ciu => ciu.Status == PaymentStatus.Done).Sum(ciu => (int?)ciu.Amount) ?? 0,
                                    Price = item.Product.Price,
                                    ProductId = item.ProductId,
                                    SelectedAmount = item.CartItem_Users.Sum(ciu => (int?)ciu.Amount) ?? 0,
@@ -260,6 +326,7 @@ namespace Backend.Services
                                                     item.CartItem_Users.Where(ciu => ciu.UserId == userId).Sum(ciu => ciu.Amount) :
                                                     0,
                                    Users = from ciu in item.CartItem_Users
+                                           where ciu.UserId != null
                                            select new CartItemUserModel
                                            {
                                                Amount = ciu.Amount,
@@ -270,7 +337,8 @@ namespace Backend.Services
                        MerchantId = cart.MerchantId,
                        MerchantName = cart.Merchant.Name,
                        Date = cart.Created,
-                       TotalPrice = cart.CartItems.Sum(x => (float?)(x.Amount * x.Product.Price)) ?? 0
+                       TotalPrice = cart.CartItems.Sum(x => (float?)(x.Amount * x.Product.Price)) ?? 0,
+                       PaidPrice = cart.CartItems.Sum(x => x.CartItem_Users.Where(ciu => ciu.Status == PaymentStatus.Done).Sum(ciu => (int?)ciu.Amount) * x.Product.Price) ?? 0
                    };
         }
     }
